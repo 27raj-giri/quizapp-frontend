@@ -8,6 +8,10 @@ import TeacherQuiz from "./pages/TeacherQuiz"
 import JoinQuiz from "./pages/JoinQuiz"
 import SharedQuiz from "./pages/SharedQuiz"
 import Dashboard from "./pages/Dashboard"
+import Signup from "./pages/Signup"
+import Login from "./pages/Login"
+import Profile from "./pages/Profile"
+import Leaderboard from "./pages/Leaderboard"
 
 function App() {
   return (
@@ -23,6 +27,10 @@ function App() {
         <Route path="/join" element={<JoinQuiz />} />
         <Route path="/shared-quiz" element={<SharedQuiz />} />
         <Route path="/dashboard/:code" element={<Dashboard />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/leaderboard" element={<Leaderboard />} />
       </Routes>
     </BrowserRouter>
   )

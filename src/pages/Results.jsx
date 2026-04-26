@@ -24,6 +24,7 @@ function Results() {
 
   const saveAttempt = async () => {
     try {
+      const profile = JSON.parse(localStorage.getItem("profile") || "null")
       await fetch(`${API_URL}/save-attempt`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -37,7 +38,8 @@ function Results() {
           stream: studentData.stream,
           subject: studentData.subject,
           score,
-          total
+          total,
+          profile_id: profile?.id || null
         })
       })
     } catch (err) {

@@ -14,20 +14,53 @@ function Landing() {
       </div>
 
       {/* Navbar */}
-      <nav className="relative z-10 flex items-center justify-between px-8 py-5 border-b border-white/10 backdrop-blur-sm">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-xl flex items-center justify-center text-lg">
-            🧠
-          </div>
-          <span className="text-xl font-bold bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent">
-            QuizAI
+          {/* Navbar */}
+<nav className="relative z-10 flex items-center justify-between px-8 py-5 border-b border-white/10 backdrop-blur-sm">
+  <div className="flex items-center gap-3">
+    <div className="w-9 h-9 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-xl flex items-center justify-center text-lg">
+      🧠
+    </div>
+    <span className="text-xl font-bold bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent">
+      QuizAI
+    </span>
+  </div>
+  <div className="flex items-center gap-3">
+    {JSON.parse(localStorage.getItem("profile")) ? (
+      <>
+        <button
+          onClick={() => navigate("/leaderboard")}
+          className="text-gray-300 hover:text-white px-4 py-2 rounded-xl transition-colors"
+        >
+          🏆 Leaderboard
+        </button>
+        <button
+          onClick={() => navigate("/profile")}
+          className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-4 py-2 rounded-xl font-semibold hover:opacity-90 transition-all flex items-center gap-2"
+        >
+          <span className="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center text-sm font-bold">
+            {JSON.parse(localStorage.getItem("profile"))?.name?.charAt(0).toUpperCase()}
           </span>
-        </div>
-        <div className="flex items-center gap-2 bg-white/10 px-4 py-2 rounded-full border border-white/20">
-          <span className="text-yellow-400 text-sm">✨</span>
-          <span className="text-sm text-gray-300">Powered by Gemini AI</span>
-        </div>
-      </nav>
+          My Profile
+        </button>
+      </>
+    ) : (
+      <>
+        <button
+          onClick={() => navigate("/login")}
+          className="text-gray-300 hover:text-white px-4 py-2 rounded-xl transition-colors"
+        >
+          Login
+        </button>
+        <button
+          onClick={() => navigate("/signup")}
+          className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-4 py-2 rounded-xl font-semibold hover:opacity-90 transition-all"
+        >
+          Sign Up
+        </button>
+      </>
+    )}
+  </div>
+</nav>
 
       {/* Hero */}
       <div className="relative z-10 flex flex-col items-center justify-center px-4 pt-20 pb-10">

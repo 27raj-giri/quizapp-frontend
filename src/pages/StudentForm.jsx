@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 
 const universityData = {
@@ -98,25 +98,28 @@ const universityData = {
 
 function StudentForm() {
   const navigate = useNavigate()
-  const [step, setStep] = useState(1)
+  const profile = JSON.parse(localStorage.getItem("profile") || "null")
+
   const [formData, setFormData] = useState({
-    name: "",
+    name: profile?.name || "",
     age: "",
-    state: "",
-    university: "",
-    college: "",
-    year: "",
-    stream: "",
+    state: profile?.state || "",
+    university: profile?.university || "",
+    college: profile?.college || "",
+    year: profile?.year || "",
+    stream: profile?.stream || "",
     subject: ""
   })
 
+  const isLoggedIn = !!profile
+
   const states = Object.keys(universityData)
-  const streams = formData.state ? Object.keys(universityData[formData.state].streams) : []
+  const streams = formData.state ? Object.keys(universityData[formData.state]?.streams || {}) : []
   const years = formData.state && formData.stream
-    ? Object.keys(universityData[formData.state].streams[formData.stream])
+    ? Object.keys(universityData[formData.state]?.streams[formData.stream] || {})
     : []
   const subjects = formData.state && formData.stream && formData.year
-    ? universityData[formData.state].streams[formData.stream][formData.year]
+    ? universityData[formData.state]?.streams[formData.stream]?.[formData.year] || []
     : []
 
   const handleChange = (field, value) => {
@@ -140,7 +143,6 @@ function StudentForm() {
   }
 
   const handleSubmit = () => {
-    localStorage.setItem("studentData", JSON.stringify(formData))
     navigate("/quiz", { state: formData })
   }
 
@@ -150,7 +152,6 @@ function StudentForm() {
   return (
     <div className="min-h-screen bg-[#0f0c29] text-white flex items-center justify-center px-4 py-10">
 
-      {/* Background blobs */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-purple-600 rounded-full filter blur-3xl opacity-20"></div>
         <div className="absolute bottom-[-10%] right-[-5%] w-96 h-96 bg-indigo-600 rounded-full filter blur-3xl opacity-20"></div>
@@ -158,113 +159,119 @@ function StudentForm() {
 
       <div className="relative z-10 w-full max-w-lg">
 
-        {/* Back button */}
-        <button
-          onClick={() => navigate("/")}
-          className="flex items-center gap-2 text-gray-400 hover:text-white mb-8 transition-colors"
-        >
+        <button onClick={() => navigate("/")} className="flex items-center gap-2 text-gray-400 hover:text-white mb-8 transition-colors">
           ← Back to Home
         </button>
 
-        {/* Card */}
         <div className="bg-white/5 border border-white/10 rounded-3xl p-8">
 
-          {/* Header */}
           <div className="flex items-center gap-3 mb-8">
             <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl flex items-center justify-center text-2xl">
               🎓
             </div>
             <div>
-              <h1 className="text-2xl font-bold">Student Details</h1>
-              <p className="text-gray-400 text-sm">Fill your details to get started</p>
+              <h1 className="text-2xl font-bold">
+                {isLoggedIn ? `Welcome, ${profile.name}!` : "Student Details"}
+              </h1>
+              <p className="text-gray-400 text-sm">
+                {isLoggedIn ? "Select subject to start quiz" : "Fill your details to get started"}
+              </p>
             </div>
           </div>
 
-          {/* Form */}
           <div className="space-y-4">
 
-            {/* Name & Age */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-gray-400 text-sm mb-2 block">Full Name</label>
-                <input
-                  type="text"
-                  placeholder="Your name"
-                  value={formData.name}
-                  onChange={e => handleChange("name", e.target.value)}
-                  className={inputClass}
-                />
-              </div>
-              <div>
-                <label className="text-gray-400 text-sm mb-2 block">Age</label>
-                <input
-                  type="number"
-                  placeholder="Your age"
-                  value={formData.age}
-                  onChange={e => handleChange("age", e.target.value)}
-                  className={inputClass}
-                />
-              </div>
-            </div>
-
-            {/* State */}
-            <div>
-              <label className="text-gray-400 text-sm mb-2 block">State</label>
-              <select
-                value={formData.state}
-                onChange={e => handleChange("state", e.target.value)}
-                className={selectClass}
-              >
-                <option value="">Select your state</option>
-                {states.map(s => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* University - Auto filled */}
-            {formData.university && (
-              <div>
-                <label className="text-gray-400 text-sm mb-2 block">University</label>
-                <div className="w-full bg-purple-500/10 border border-purple-500/30 rounded-xl px-4 py-3 text-purple-300 font-medium">
-                  ✓ {formData.university}
+            {/* If logged in show profile summary */}
+            {isLoggedIn ? (
+              <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-4 mb-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-purple-300 text-sm font-medium mb-1">Your Profile</div>
+                    <div className="flex gap-2 flex-wrap">
+                      <span className="bg-white/10 text-gray-300 text-xs px-2 py-1 rounded-lg">{profile.university}</span>
+                      <span className="bg-white/10 text-gray-300 text-xs px-2 py-1 rounded-lg">{profile.stream}</span>
+                      <span className="bg-white/10 text-gray-300 text-xs px-2 py-1 rounded-lg">{profile.college}</span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => navigate("/profile")}
+                    className="text-purple-400 text-xs hover:underline"
+                  >
+                    View Profile
+                  </button>
                 </div>
               </div>
+            ) : (
+              <>
+                {/* Name & Age - only show if not logged in */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-gray-400 text-sm mb-2 block">Full Name</label>
+                    <input
+                      type="text"
+                      placeholder="Your name"
+                      value={formData.name}
+                      onChange={e => handleChange("name", e.target.value)}
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-gray-400 text-sm mb-2 block">Age</label>
+                    <input
+                      type="number"
+                      placeholder="Your age"
+                      value={formData.age}
+                      onChange={e => handleChange("age", e.target.value)}
+                      className={inputClass}
+                    />
+                  </div>
+                </div>
+
+                {/* State */}
+                <div>
+                  <label className="text-gray-400 text-sm mb-2 block">State</label>
+                  <select value={formData.state} onChange={e => handleChange("state", e.target.value)} className={selectClass}>
+                    <option value="">Select your state</option>
+                    {states.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+
+                {/* University */}
+                {formData.university && (
+                  <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl px-4 py-3 text-purple-300 font-medium">
+                    ✓ {formData.university}
+                  </div>
+                )}
+
+                {/* College */}
+                {formData.state && (
+                  <div>
+                    <label className="text-gray-400 text-sm mb-2 block">College Name</label>
+                    <input
+                      type="text"
+                      placeholder="Enter your college name"
+                      value={formData.college}
+                      onChange={e => handleChange("college", e.target.value)}
+                      className={inputClass}
+                    />
+                  </div>
+                )}
+
+                {/* Stream */}
+                {formData.state && (
+                  <div>
+                    <label className="text-gray-400 text-sm mb-2 block">Stream</label>
+                    <select value={formData.stream} onChange={e => handleChange("stream", e.target.value)} className={selectClass}>
+                      <option value="">Select your stream</option>
+                      {streams.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+                )}
+              </>
             )}
 
-            {/* College */}
-            {formData.state && (
-              <div>
-                <label className="text-gray-400 text-sm mb-2 block">College Name</label>
-                <input
-                  type="text"
-                  placeholder="Enter your college name"
-                  value={formData.college}
-                  onChange={e => handleChange("college", e.target.value)}
-                  className={inputClass}
-                />
-              </div>
-            )}
-
-            {/* Stream */}
-            {formData.state && (
-              <div>
-                <label className="text-gray-400 text-sm mb-2 block">Stream</label>
-                <select
-                  value={formData.stream}
-                  onChange={e => handleChange("stream", e.target.value)}
-                  className={selectClass}
-                >
-                  <option value="">Select your stream</option>
-                  {streams.map(s => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {/* Year */}
-            {formData.stream && (
+            {/* Year - show for everyone */}
+            {(formData.stream || isLoggedIn) && (
               <div>
                 <label className="text-gray-400 text-sm mb-2 block">Year</label>
                 <select
@@ -273,9 +280,10 @@ function StudentForm() {
                   className={selectClass}
                 >
                   <option value="">Select your year</option>
-                  {years.map(y => (
-                    <option key={y} value={y}>{y}</option>
-                  ))}
+                  {(isLoggedIn
+                    ? ["1st Year", "2nd Year", "3rd Year", "4th Year"]
+                    : years
+                  ).map(y => <option key={y} value={y}>{y}</option>)}
                 </select>
               </div>
             )}
@@ -285,7 +293,10 @@ function StudentForm() {
               <div>
                 <label className="text-gray-400 text-sm mb-2 block">Subject</label>
                 <div className="grid grid-cols-2 gap-2">
-                  {subjects.map(sub => (
+                  {(isLoggedIn && formData.state && formData.stream && formData.year
+                    ? universityData[formData.state]?.streams[formData.stream]?.[formData.year] || []
+                    : subjects
+                  ).map(sub => (
                     <button
                       key={sub}
                       onClick={() => handleChange("subject", sub)}
@@ -303,7 +314,7 @@ function StudentForm() {
             )}
 
             {/* Submit */}
-            {formData.subject && formData.name && formData.college && (
+            {formData.subject && (isLoggedIn || (formData.name && formData.college)) && (
               <button
                 onClick={handleSubmit}
                 className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-4 rounded-xl font-bold text-lg hover:opacity-90 transition-all mt-4 shadow-lg shadow-purple-500/30"
