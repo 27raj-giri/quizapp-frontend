@@ -108,7 +108,8 @@ function StudentForm() {
     college: profile?.college || "",
     year: profile?.year || "",
     stream: profile?.stream || "",
-    subject: ""
+    subject: "",
+    mode: ""
   })
 
   const isLoggedIn = !!profile
@@ -313,15 +314,48 @@ function StudentForm() {
               </div>
             )}
 
+{/* Quiz Mode Selection */}
+{formData.subject && (
+  <div>
+    <label className="text-gray-400 text-sm mb-3 block">Quiz Mode</label>
+    <div className="grid grid-cols-2 gap-3">
+      <button
+        onClick={() => handleChange("mode", "normal")}
+        className={`p-4 rounded-xl border transition-all text-left ${
+          formData.mode === "normal"
+            ? "bg-purple-600/20 border-purple-500 text-white"
+            : "bg-white/5 border-white/10 text-gray-300 hover:border-purple-500/50"
+        }`}
+      >
+        <div className="text-xl mb-1">📚</div>
+        <div className="font-semibold text-sm">Normal Mode</div>
+        <div className="text-xs text-gray-400 mt-1">Fixed difficulty quiz</div>
+      </button>
+      <button
+        onClick={() => handleChange("mode", "adaptive")}
+        className={`p-4 rounded-xl border transition-all text-left ${
+          formData.mode === "adaptive"
+            ? "bg-purple-600/20 border-purple-500 text-white"
+            : "bg-white/5 border-white/10 text-gray-300 hover:border-purple-500/50"
+        }`}
+      >
+        <div className="text-xl mb-1">🎯</div>
+        <div className="font-semibold text-sm">Adaptive Mode</div>
+        <div className="text-xs text-gray-400 mt-1">AI adjusts difficulty</div>
+      </button>
+    </div>
+  </div>
+)}
+
             {/* Submit */}
-            {formData.subject && (isLoggedIn || (formData.name && formData.college)) && (
-              <button
-                onClick={handleSubmit}
-                className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-4 rounded-xl font-bold text-lg hover:opacity-90 transition-all mt-4 shadow-lg shadow-purple-500/30"
-              >
-                Generate My Quiz 🚀
-              </button>
-            )}
+                      {formData.subject && formData.mode && (isLoggedIn || (formData.name && formData.college)) && (
+            <button
+              onClick={handleSubmit}
+              className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-4 rounded-xl font-bold text-lg hover:opacity-90 transition-all mt-4 shadow-lg shadow-purple-500/30"
+            >
+              Generate My Quiz 🚀
+            </button>
+          )}
 
           </div>
         </div>
