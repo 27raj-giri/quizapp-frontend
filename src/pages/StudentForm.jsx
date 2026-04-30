@@ -109,7 +109,8 @@ function StudentForm() {
     year: profile?.year || "",
     stream: profile?.stream || "",
     subject: "",
-    mode: ""
+    mode: "",
+    difficulty: ""
   })
 
   const isLoggedIn = !!profile
@@ -347,15 +348,63 @@ function StudentForm() {
   </div>
 )}
 
-            {/* Submit */}
-                      {formData.subject && formData.mode && (isLoggedIn || (formData.name && formData.college)) && (
-            <button
-              onClick={handleSubmit}
-              className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-4 rounded-xl font-bold text-lg hover:opacity-90 transition-all mt-4 shadow-lg shadow-purple-500/30"
-            >
-              Generate My Quiz 🚀
-            </button>
-          )}
+{/* Starting Difficulty - show for both modes */}
+{formData.mode && (
+  <div>
+    <label className="text-gray-400 text-sm mb-3 block">
+      {formData.mode === "adaptive" ? "Starting Difficulty" : "Difficulty Level"}
+    </label>
+    <div className="grid grid-cols-3 gap-3">
+      <button
+        onClick={() => handleChange("difficulty", "easy")}
+        className={`p-4 rounded-xl border transition-all text-center ${
+          formData.difficulty === "easy"
+            ? "bg-green-500/20 border-green-500 text-white"
+            : "bg-white/5 border-white/10 text-gray-300 hover:border-green-500/50"
+        }`}
+      >
+        <div className="text-xl mb-1">🟢</div>
+        <div className="font-semibold text-sm">Easy</div>
+        <div className="text-xs text-gray-400 mt-1">Basic concepts</div>
+      </button>
+      <button
+        onClick={() => handleChange("difficulty", "medium")}
+        className={`p-4 rounded-xl border transition-all text-center ${
+          formData.difficulty === "medium"
+            ? "bg-yellow-500/20 border-yellow-500 text-white"
+            : "bg-white/5 border-white/10 text-gray-300 hover:border-yellow-500/50"
+        }`}
+      >
+        <div className="text-xl mb-1">🟡</div>
+        <div className="font-semibold text-sm">Medium</div>
+        <div className="text-xs text-gray-400 mt-1">Moderate level</div>
+      </button>
+      <button
+        onClick={() => handleChange("difficulty", "hard")}
+        className={`p-4 rounded-xl border transition-all text-center ${
+          formData.difficulty === "hard"
+            ? "bg-red-500/20 border-red-500 text-white"
+            : "bg-white/5 border-white/10 text-gray-300 hover:border-red-500/50"
+        }`}
+      >
+        <div className="text-xl mb-1">🔴</div>
+        <div className="font-semibold text-sm">Hard</div>
+        <div className="text-xs text-gray-400 mt-1">Advanced level</div>
+      </button>
+    </div>
+  </div>
+)}
+
+{/* Submit */}
+            {formData.subject && formData.mode && formData.difficulty &&
+             (isLoggedIn || (formData.name && formData.college)) && (
+              <button
+                onClick={handleSubmit}
+                className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-4 rounded-xl font-bold text-lg hover:opacity-90 transition-all mt-4 shadow-lg shadow-purple-500/30"
+              >
+                Generate My Quiz 🚀
+              </button>
+            )}
 
           </div>
         </div>

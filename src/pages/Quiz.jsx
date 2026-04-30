@@ -19,16 +19,14 @@ function Quiz() {
   const [showExplanation, setShowExplanation] = useState(false)
   const [timeLeft, setTimeLeft] = useState(30)
   const [timerActive, setTimerActive] = useState(false)
-  const [currentDifficulty, setCurrentDifficulty] = useState("medium")
-  const [batchCorrect, setBatchCorrect] = useState(0)
-  const [batchCount, setBatchCount] = useState(0)
+  const [currentDifficulty, setCurrentDifficulty] = useState(studentData?.difficulty || "medium")
+  const [batchAnswers, setBatchAnswers] = useState([])
   const [consecutiveCorrect, setConsecutiveCorrect] = useState(0)
-  const [difficultyHistory, setDifficultyHistory] = useState(["medium"])
   const timerRef = useRef(null)
 
-  useEffect(() => {
+ useEffect(() => {
     if (studentData.mode === "adaptive") {
-      generateBatch("medium")
+      generateBatch(studentData.difficulty || "medium")
     } else {
       generateNormalQuiz()
     }
@@ -53,7 +51,7 @@ function Quiz() {
   const generateNormalQuiz = async () => {
     setLoading(true)
     try {
-      const res = await fetch(`${API_URL}/generate-student-quiz`, {
+      const res = await fetch(`${API_URL}/generate-adaptive-quiz`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -61,11 +59,14 @@ function Quiz() {
           stream: studentData.stream,
           year: studentData.year,
           subject: studentData.subject,
-          numQuestions: 10
+          difficulty: studentData.difficulty || "medium",
+          count: 10,
+          previous_questions: []
         })
       })
       const data = await res.json()
       setQuestions(data.questions)
+      setCurrentDifficulty(studentData.difficulty || "medium")
       setTimerActive(true)
     } catch (err) {
       console.error(err)
@@ -75,6 +76,8 @@ function Quiz() {
 
   const generateBatch = async (difficulty) => {
     try {
+      const previousQs = questions.map(q => q.question)
+      
       const res = await fetch(`${API_URL}/generate-adaptive-quiz`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -84,16 +87,15 @@ function Quiz() {
           stream: studentData.stream,
           year: studentData.year,
           difficulty,
-          count: BATCH_SIZE
+          count: BATCH_SIZE,
+          previous_questions: previousQs
         })
       })
       const data = await res.json()
       setQuestions(prev => [...prev, ...data.questions])
       setCurrentDifficulty(difficulty)
-      setDifficultyHistory(prev => [...prev, difficulty])
+      setBatchAnswers([])
       setTimerActive(true)
-      setBatchCorrect(0)
-      setBatchCount(0)
     } catch (err) {
       console.error(err)
     }
@@ -101,9 +103,9 @@ function Quiz() {
     setLoadingNext(false)
   }
 
-  const getNextDifficulty = (correct) => {
-    if (correct === BATCH_SIZE) return "hard"
-    if (correct === 1) return "medium"
+  const getNextDifficulty = (correctInBatch) => {
+    if (correctInBatch === BATCH_SIZE) return "hard"
+    if (correctInBatch === 1) return "medium"
     return "easy"
   }
 
@@ -114,6 +116,7 @@ function Quiz() {
     setTimerActive(false)
     clearInterval(timerRef.current)
     setConsecutiveCorrect(0)
+    setBatchAnswers(prev => [...prev, false])
   }
 
   const handleSelect = (option) => {
@@ -124,41 +127,40 @@ function Quiz() {
     setShowExplanation(true)
 
     const isCorrect = option === questions[current].correct
+
     if (isCorrect) {
-      setBatchCorrect(prev => prev + 1)
       setConsecutiveCorrect(prev => prev + 1)
     } else {
       setConsecutiveCorrect(0)
     }
-    setBatchCount(prev => prev + 1)
+
+    setBatchAnswers(prev => [...prev, isCorrect])
   }
 
   const handleNext = async () => {
     const isCorrect = selected !== "__timeout__" && selected === questions[current].correct
-    const newAnswers = [...answers, {
+
+    const newAnswer = {
       question: questions[current].question,
       selected: selected === "__timeout__" ? "Time's up! ⏰" : selected,
       correct: questions[current].correct,
       isCorrect,
       difficulty: currentDifficulty,
       timedOut: selected === "__timeout__"
-    }]
+    }
+
+    const newAnswers = [...answers, newAnswer]
     setAnswers(newAnswers)
 
     const nextIndex = current + 1
-    const newBatchCount = batchCount + 1
+    const newBatchAnswers = [...batchAnswers]
 
-    // Check if quiz is done
+    // Normal mode
     if (studentData.mode === "normal") {
       if (nextIndex >= questions.length) {
         const score = newAnswers.filter(a => a.isCorrect).length
         navigate("/results", {
-          state: {
-            answers: newAnswers,
-            score,
-            total: newAnswers.length,
-            studentData
-          }
+          state: { answers: newAnswers, score, total: newAnswers.length, studentData }
         })
         return
       }
@@ -170,29 +172,32 @@ function Quiz() {
       return
     }
 
-    // Adaptive mode
+    // Adaptive mode - check if quiz is done
     if (newAnswers.length >= TOTAL_QUESTIONS) {
       const score = newAnswers.filter(a => a.isCorrect).length
       navigate("/results", {
-        state: {
-          answers: newAnswers,
-          score,
-          total: newAnswers.length,
-          studentData,
-          difficultyHistory
-        }
+        state: { answers: newAnswers, score, total: newAnswers.length, studentData }
       })
       return
     }
 
-    if (newBatchCount >= BATCH_SIZE) {
-      const nextDiff = getNextDifficulty(isCorrect ? batchCorrect + 1 : batchCorrect)
+    // Check if current batch is complete
+    if (newBatchAnswers.length >= BATCH_SIZE) {
+      // Calculate correct in this batch
+      const correctInBatch = newBatchAnswers.filter(Boolean).length
+      const nextDiff = getNextDifficulty(correctInBatch)
+
+      console.log(`Batch done! Correct: ${correctInBatch}/${BATCH_SIZE} → Next: ${nextDiff}`)
+
       setLoadingNext(true)
       setTimerActive(false)
+      clearInterval(timerRef.current)
       setCurrent(nextIndex)
       setSelected(null)
       setShowExplanation(false)
       setTimeLeft(30)
+      setBatchAnswers([])
+
       await generateBatch(nextDiff)
     } else {
       setCurrent(nextIndex)
@@ -201,6 +206,42 @@ function Quiz() {
       setTimeLeft(30)
       setTimerActive(true)
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0f0c29] flex flex-col items-center justify-center">
+        <div className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mb-6"></div>
+        <p className="text-white text-xl font-semibold">Generating your quiz...</p>
+        <p className="text-gray-400 mt-2">AI is preparing questions</p>
+      </div>
+    )
+  }
+
+  if (loadingNext) {
+    const nextDiffLabel = currentDifficulty === "hard" ? "Hard 🔴" : currentDifficulty === "easy" ? "Easy 🟢" : "Medium 🟡"
+    return (
+      <div className="min-h-screen bg-[#0f0c29] flex flex-col items-center justify-center">
+        <div className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mb-6"></div>
+        <p className="text-white text-xl font-semibold">Adapting difficulty...</p>
+        <p className="text-gray-400 mt-2">
+          Switching to <span className={
+            currentDifficulty === "hard" ? "text-red-400 font-bold" :
+            currentDifficulty === "easy" ? "text-green-400 font-bold" :
+            "text-yellow-400 font-bold"
+          }>{nextDiffLabel}</span> based on your performance
+        </p>
+        <div className="mt-6 flex gap-2">
+          {Array.from({ length: BATCH_SIZE }).map((_, i) => (
+            <div key={i} className={`w-3 h-3 rounded-full ${
+              batchAnswers[i] === true ? "bg-green-400" :
+              batchAnswers[i] === false ? "bg-red-400" :
+              "bg-white/20"
+            }`}></div>
+          ))}
+        </div>
+      </div>
+    )
   }
 
   if (!questions.length || current >= questions.length) return null
@@ -214,11 +255,7 @@ function Quiz() {
     ? "text-yellow-400 border-yellow-400"
     : "text-red-400 border-red-400 animate-pulse"
 
-  const timerBg = timeLeft > 15
-    ? "bg-green-400"
-    : timeLeft > 5
-    ? "bg-yellow-400"
-    : "bg-red-400"
+  const timerBg = timeLeft > 15 ? "bg-green-400" : timeLeft > 5 ? "bg-yellow-400" : "bg-red-400"
 
   const difficultyColors = {
     easy: "text-green-400 bg-green-400/10 border-green-400/30",
@@ -226,11 +263,7 @@ function Quiz() {
     hard: "text-red-400 bg-red-400/10 border-red-400/30"
   }
 
-  const diffEmoji = {
-    easy: "🟢",
-    medium: "🟡",
-    hard: "🔴"
-  }
+  const diffEmoji = { easy: "🟢", medium: "🟡", hard: "🔴" }
 
   return (
     <div className="min-h-screen bg-[#0f0c29] text-white px-4 py-8">
@@ -286,19 +319,22 @@ function Quiz() {
           )}
         </div>
 
-        {/* Batch Progress */}
-        <div className="flex gap-2 mb-6">
-          {Array.from({ length: BATCH_SIZE }).map((_, i) => (
-            <div
-              key={i}
-              className={`h-1 flex-1 rounded-full ${
-                i < batchCount
-                  ? "bg-purple-500"
-                  : "bg-white/10"
-              }`}
-            ></div>
-          ))}
-        </div>
+        {/* Batch Progress Dots */}
+        {studentData.mode === "adaptive" && (
+          <div className="flex gap-2 mb-4">
+            {Array.from({ length: BATCH_SIZE }).map((_, i) => (
+              <div
+                key={i}
+                className={`h-2 flex-1 rounded-full transition-all ${
+                  batchAnswers[i] === true ? "bg-green-400" :
+                  batchAnswers[i] === false ? "bg-red-400" :
+                  i === batchAnswers.length ? "bg-purple-500 animate-pulse" :
+                  "bg-white/10"
+                }`}
+              ></div>
+            ))}
+          </div>
+        )}
 
         {/* Question Card */}
         <div className="bg-white/5 border border-white/10 rounded-3xl p-8 mb-6">
@@ -310,17 +346,11 @@ function Quiz() {
           <div className="space-y-3">
             {q.options.map((option, i) => {
               let style = "bg-white/5 border-white/10 text-gray-300 hover:border-purple-500/50 hover:bg-white/10"
-
               if (selected) {
-                if (option === q.correct) {
-                  style = "bg-green-500/20 border-green-500 text-green-300"
-                } else if (option === selected && option !== q.correct) {
-                  style = "bg-red-500/20 border-red-500 text-red-300"
-                } else {
-                  style = "bg-white/5 border-white/10 text-gray-500"
-                }
+                if (option === q.correct) style = "bg-green-500/20 border-green-500 text-green-300"
+                else if (option === selected && option !== q.correct) style = "bg-red-500/20 border-red-500 text-red-300"
+                else style = "bg-white/5 border-white/10 text-gray-500"
               }
-
               return (
                 <button
                   key={i}
