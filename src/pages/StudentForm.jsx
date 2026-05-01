@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 
 const universityData = {
@@ -99,7 +99,11 @@ const universityData = {
 function StudentForm() {
   const navigate = useNavigate()
   const profile = JSON.parse(localStorage.getItem("profile") || "null")
+  const isLoggedIn = !!profile
 
+  const [activeTab, setActiveTab] = useState("syllabus")
+
+  // Syllabus form data
   const [formData, setFormData] = useState({
     name: profile?.name || "",
     age: "",
@@ -113,7 +117,12 @@ function StudentForm() {
     difficulty: ""
   })
 
-  const isLoggedIn = !!profile
+  // Custom topic form data
+  const [customData, setCustomData] = useState({
+    topic: "",
+    mode: "",
+    difficulty: ""
+  })
 
   const states = Object.keys(universityData)
   const streams = formData.state ? Object.keys(universityData[formData.state]?.streams || {}) : []
@@ -133,13 +142,8 @@ function StudentForm() {
         updated.year = ""
         updated.subject = ""
       }
-      if (field === "stream") {
-        updated.year = ""
-        updated.subject = ""
-      }
-      if (field === "year") {
-        updated.subject = ""
-      }
+      if (field === "stream") { updated.year = ""; updated.subject = "" }
+      if (field === "year") { updated.subject = "" }
       return updated
     })
   }
@@ -148,8 +152,80 @@ function StudentForm() {
     navigate("/quiz", { state: formData })
   }
 
+  const handleCustomSubmit = () => {
+    navigate("/quiz", {
+      state: {
+        name: profile?.name || "Student",
+        subject: customData.topic,
+        university: profile?.university || "General",
+        stream: profile?.stream || "General",
+        year: profile?.year || "General",
+        college: profile?.college || "General",
+        state: profile?.state || "General",
+        mode: customData.mode,
+        difficulty: customData.difficulty,
+        isCustom: true
+      }
+    })
+  }
+
   const inputClass = "w-full bg-white/5 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
   const selectClass = "w-full bg-[#1a1a2e] border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 transition-colors cursor-pointer"
+
+  const ModeSelector = ({ value, onChange }) => (
+    <div>
+      <label className="text-gray-400 text-sm mb-3 block">Quiz Mode</label>
+      <div className="grid grid-cols-2 gap-3">
+        {[
+          { id: "normal", icon: "📚", label: "Normal Mode", desc: "Fixed difficulty quiz" },
+          { id: "adaptive", icon: "🎯", label: "Adaptive Mode", desc: "AI adjusts difficulty" }
+        ].map(m => (
+          <button
+            key={m.id}
+            onClick={() => onChange("mode", m.id)}
+            className={`p-4 rounded-xl border transition-all text-left ${
+              value === m.id
+                ? "bg-purple-600/20 border-purple-500 text-white"
+                : "bg-white/5 border-white/10 text-gray-300 hover:border-purple-500/50"
+            }`}
+          >
+            <div className="text-xl mb-1">{m.icon}</div>
+            <div className="font-semibold text-sm">{m.label}</div>
+            <div className="text-xs text-gray-400 mt-1">{m.desc}</div>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+
+  const DifficultySelector = ({ value, onChange, mode }) => (
+    <div>
+      <label className="text-gray-400 text-sm mb-3 block">
+        {mode === "adaptive" ? "Starting Difficulty" : "Difficulty Level"}
+      </label>
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { id: "easy", emoji: "🟢", label: "Easy", desc: "Basic concepts", color: "green" },
+          { id: "medium", emoji: "🟡", label: "Medium", desc: "Moderate level", color: "yellow" },
+          { id: "hard", emoji: "🔴", label: "Hard", desc: "Advanced level", color: "red" }
+        ].map(d => (
+          <button
+            key={d.id}
+            onClick={() => onChange("difficulty", d.id)}
+            className={`p-4 rounded-xl border transition-all text-center ${
+              value === d.id
+                ? `bg-${d.color}-500/20 border-${d.color}-500 text-white`
+                : `bg-white/5 border-white/10 text-gray-300 hover:border-${d.color}-500/50`
+            }`}
+          >
+            <div className="text-xl mb-1">{d.emoji}</div>
+            <div className="font-semibold text-sm">{d.label}</div>
+            <div className="text-xs text-gray-400 mt-1">{d.desc}</div>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
 
   return (
     <div className="min-h-screen bg-[#0f0c29] text-white flex items-center justify-center px-4 py-10">
@@ -165,248 +241,258 @@ function StudentForm() {
           ← Back to Home
         </button>
 
+        {/* Tabs */}
+        <div className="flex gap-2 mb-6 bg-white/5 border border-white/10 rounded-2xl p-1">
+          <button
+            onClick={() => setActiveTab("syllabus")}
+            className={`flex-1 py-3 rounded-xl font-semibold text-sm transition-all ${
+              activeTab === "syllabus"
+                ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg"
+                : "text-gray-400 hover:text-white"
+            }`}
+          >
+            📚 My Syllabus
+          </button>
+          <button
+            onClick={() => setActiveTab("custom")}
+            className={`flex-1 py-3 rounded-xl font-semibold text-sm transition-all ${
+              activeTab === "custom"
+                ? "bg-gradient-to-r from-pink-600 to-rose-600 text-white shadow-lg"
+                : "text-gray-400 hover:text-white"
+            }`}
+          >
+            🔍 Any Topic
+          </button>
+        </div>
+
         <div className="bg-white/5 border border-white/10 rounded-3xl p-8">
 
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl flex items-center justify-center text-2xl">
-              🎓
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold">
-                {isLoggedIn ? `Welcome, ${profile.name}!` : "Student Details"}
-              </h1>
-              <p className="text-gray-400 text-sm">
-                {isLoggedIn ? "Select subject to start quiz" : "Fill your details to get started"}
-              </p>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-
-            {/* If logged in show profile summary */}
-            {isLoggedIn ? (
-              <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-4 mb-2">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-purple-300 text-sm font-medium mb-1">Your Profile</div>
-                    <div className="flex gap-2 flex-wrap">
-                      <span className="bg-white/10 text-gray-300 text-xs px-2 py-1 rounded-lg">{profile.university}</span>
-                      <span className="bg-white/10 text-gray-300 text-xs px-2 py-1 rounded-lg">{profile.stream}</span>
-                      <span className="bg-white/10 text-gray-300 text-xs px-2 py-1 rounded-lg">{profile.college}</span>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => navigate("/profile")}
-                    className="text-purple-400 text-xs hover:underline"
-                  >
-                    View Profile
-                  </button>
+          {/* SYLLABUS TAB */}
+          {activeTab === "syllabus" && (
+            <>
+              <div className="flex items-center gap-3 mb-8">
+                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl flex items-center justify-center text-2xl">
+                  🎓
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold">
+                    {isLoggedIn ? `Welcome, ${profile.name}!` : "Student Details"}
+                  </h1>
+                  <p className="text-gray-400 text-sm">
+                    {isLoggedIn ? "Select subject to start quiz" : "Fill your details to get started"}
+                  </p>
                 </div>
               </div>
-            ) : (
-              <>
-                {/* Name & Age - only show if not logged in */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-gray-400 text-sm mb-2 block">Full Name</label>
-                    <input
-                      type="text"
-                      placeholder="Your name"
-                      value={formData.name}
-                      onChange={e => handleChange("name", e.target.value)}
-                      className={inputClass}
-                    />
-                  </div>
-                  <div>
-                    <label className="text-gray-400 text-sm mb-2 block">Age</label>
-                    <input
-                      type="number"
-                      placeholder="Your age"
-                      value={formData.age}
-                      onChange={e => handleChange("age", e.target.value)}
-                      className={inputClass}
-                    />
-                  </div>
-                </div>
 
-                {/* State */}
-                <div>
-                  <label className="text-gray-400 text-sm mb-2 block">State</label>
-                  <select value={formData.state} onChange={e => handleChange("state", e.target.value)} className={selectClass}>
-                    <option value="">Select your state</option>
-                    {states.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                </div>
+              <div className="space-y-4">
 
-                {/* University */}
-                {formData.university && (
-                  <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl px-4 py-3 text-purple-300 font-medium">
-                    ✓ {formData.university}
+                {isLoggedIn ? (
+                  <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-purple-300 text-sm font-medium mb-1">Your Profile</div>
+                        <div className="flex gap-2 flex-wrap">
+                          <span className="bg-white/10 text-gray-300 text-xs px-2 py-1 rounded-lg">{profile.university}</span>
+                          <span className="bg-white/10 text-gray-300 text-xs px-2 py-1 rounded-lg">{profile.stream}</span>
+                          <span className="bg-white/10 text-gray-300 text-xs px-2 py-1 rounded-lg">{profile.college}</span>
+                        </div>
+                      </div>
+                      <button onClick={() => navigate("/profile")} className="text-purple-400 text-xs hover:underline">
+                        View Profile
+                      </button>
+                    </div>
                   </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-gray-400 text-sm mb-2 block">Full Name</label>
+                        <input type="text" placeholder="Your name" value={formData.name} onChange={e => handleChange("name", e.target.value)} className={inputClass} />
+                      </div>
+                      <div>
+                        <label className="text-gray-400 text-sm mb-2 block">Age</label>
+                        <input type="number" placeholder="Your age" value={formData.age} onChange={e => handleChange("age", e.target.value)} className={inputClass} />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-gray-400 text-sm mb-2 block">State</label>
+                      <select value={formData.state} onChange={e => handleChange("state", e.target.value)} className={selectClass}>
+                        <option value="">Select your state</option>
+                        {states.map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    </div>
+
+                    {formData.university && (
+                      <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl px-4 py-3 text-purple-300 font-medium">
+                        ✓ {formData.university}
+                      </div>
+                    )}
+
+                    {formData.state && (
+                      <div>
+                        <label className="text-gray-400 text-sm mb-2 block">College Name</label>
+                        <input type="text" placeholder="Enter your college name" value={formData.college} onChange={e => handleChange("college", e.target.value)} className={inputClass} />
+                      </div>
+                    )}
+
+                    {formData.state && (
+                      <div>
+                        <label className="text-gray-400 text-sm mb-2 block">Stream</label>
+                        <select value={formData.stream} onChange={e => handleChange("stream", e.target.value)} className={selectClass}>
+                          <option value="">Select your stream</option>
+                          {streams.map(s => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                      </div>
+                    )}
+                  </>
                 )}
 
-                {/* College */}
-                {formData.state && (
+                {(formData.stream || isLoggedIn) && (
                   <div>
-                    <label className="text-gray-400 text-sm mb-2 block">College Name</label>
-                    <input
-                      type="text"
-                      placeholder="Enter your college name"
-                      value={formData.college}
-                      onChange={e => handleChange("college", e.target.value)}
-                      className={inputClass}
-                    />
-                  </div>
-                )}
-
-                {/* Stream */}
-                {formData.state && (
-                  <div>
-                    <label className="text-gray-400 text-sm mb-2 block">Stream</label>
-                    <select value={formData.stream} onChange={e => handleChange("stream", e.target.value)} className={selectClass}>
-                      <option value="">Select your stream</option>
-                      {streams.map(s => <option key={s} value={s}>{s}</option>)}
+                    <label className="text-gray-400 text-sm mb-2 block">Year</label>
+                    <select value={formData.year} onChange={e => handleChange("year", e.target.value)} className={selectClass}>
+                      <option value="">Select your year</option>
+                      {(isLoggedIn ? ["1st Year", "2nd Year", "3rd Year", "4th Year"] : years).map(y => (
+                        <option key={y} value={y}>{y}</option>
+                      ))}
                     </select>
                   </div>
                 )}
-              </>
-            )}
 
-            {/* Year - show for everyone */}
-            {(formData.stream || isLoggedIn) && (
-              <div>
-                <label className="text-gray-400 text-sm mb-2 block">Year</label>
-                <select
-                  value={formData.year}
-                  onChange={e => handleChange("year", e.target.value)}
-                  className={selectClass}
-                >
-                  <option value="">Select your year</option>
-                  {(isLoggedIn
-                    ? ["1st Year", "2nd Year", "3rd Year", "4th Year"]
-                    : years
-                  ).map(y => <option key={y} value={y}>{y}</option>)}
-                </select>
+                {formData.year && (
+                  <div>
+                    <label className="text-gray-400 text-sm mb-2 block">Subject</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {(isLoggedIn && formData.state && formData.stream && formData.year
+                        ? universityData[formData.state]?.streams[formData.stream]?.[formData.year] || []
+                        : subjects
+                      ).map(sub => (
+                        <button
+                          key={sub}
+                          onClick={() => handleChange("subject", sub)}
+                          className={`px-4 py-3 rounded-xl text-sm font-medium border transition-all ${
+                            formData.subject === sub
+                              ? "bg-purple-600 border-purple-500 text-white"
+                              : "bg-white/5 border-white/10 text-gray-300 hover:border-purple-500/50"
+                          }`}
+                        >
+                          {sub}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {formData.subject && (
+                  <ModeSelector
+                    value={formData.mode}
+                    onChange={handleChange}
+                  />
+                )}
+
+                {formData.mode && (
+                  <DifficultySelector
+                    value={formData.difficulty}
+                    onChange={handleChange}
+                    mode={formData.mode}
+                  />
+                )}
+
+                {formData.subject && formData.mode && formData.difficulty &&
+                 (isLoggedIn || (formData.name && formData.college)) && (
+                  <button
+                    onClick={handleSubmit}
+                    className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-4 rounded-xl font-bold text-lg hover:opacity-90 transition-all mt-4 shadow-lg shadow-purple-500/30"
+                  >
+                    Generate My Quiz 🚀
+                  </button>
+                )}
+
               </div>
-            )}
+            </>
+          )}
 
-            {/* Subjects */}
-            {formData.year && (
-              <div>
-                <label className="text-gray-400 text-sm mb-2 block">Subject</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {(isLoggedIn && formData.state && formData.stream && formData.year
-                    ? universityData[formData.state]?.streams[formData.stream]?.[formData.year] || []
-                    : subjects
-                  ).map(sub => (
-                    <button
-                      key={sub}
-                      onClick={() => handleChange("subject", sub)}
-                      className={`px-4 py-3 rounded-xl text-sm font-medium border transition-all ${
-                        formData.subject === sub
-                          ? "bg-purple-600 border-purple-500 text-white"
-                          : "bg-white/5 border-white/10 text-gray-300 hover:border-purple-500/50"
-                      }`}
-                    >
-                      {sub}
-                    </button>
-                  ))}
+          {/* CUSTOM TOPIC TAB */}
+          {activeTab === "custom" && (
+            <>
+              <div className="flex items-center gap-3 mb-8">
+                <div className="w-12 h-12 bg-gradient-to-br from-pink-500 to-rose-600 rounded-2xl flex items-center justify-center text-2xl">
+                  🔍
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold">Any Topic Quiz</h1>
+                  <p className="text-gray-400 text-sm">Type any topic and get an instant quiz!</p>
                 </div>
               </div>
-            )}
 
-{/* Quiz Mode Selection */}
-{formData.subject && (
-  <div>
-    <label className="text-gray-400 text-sm mb-3 block">Quiz Mode</label>
-    <div className="grid grid-cols-2 gap-3">
-      <button
-        onClick={() => handleChange("mode", "normal")}
-        className={`p-4 rounded-xl border transition-all text-left ${
-          formData.mode === "normal"
-            ? "bg-purple-600/20 border-purple-500 text-white"
-            : "bg-white/5 border-white/10 text-gray-300 hover:border-purple-500/50"
-        }`}
-      >
-        <div className="text-xl mb-1">📚</div>
-        <div className="font-semibold text-sm">Normal Mode</div>
-        <div className="text-xs text-gray-400 mt-1">Fixed difficulty quiz</div>
-      </button>
-      <button
-        onClick={() => handleChange("mode", "adaptive")}
-        className={`p-4 rounded-xl border transition-all text-left ${
-          formData.mode === "adaptive"
-            ? "bg-purple-600/20 border-purple-500 text-white"
-            : "bg-white/5 border-white/10 text-gray-300 hover:border-purple-500/50"
-        }`}
-      >
-        <div className="text-xl mb-1">🎯</div>
-        <div className="font-semibold text-sm">Adaptive Mode</div>
-        <div className="text-xs text-gray-400 mt-1">AI adjusts difficulty</div>
-      </button>
-    </div>
-  </div>
-)}
+              <div className="space-y-4">
 
-{/* Starting Difficulty - show for both modes */}
-{formData.mode && (
-  <div>
-    <label className="text-gray-400 text-sm mb-3 block">
-      {formData.mode === "adaptive" ? "Starting Difficulty" : "Difficulty Level"}
-    </label>
-    <div className="grid grid-cols-3 gap-3">
-      <button
-        onClick={() => handleChange("difficulty", "easy")}
-        className={`p-4 rounded-xl border transition-all text-center ${
-          formData.difficulty === "easy"
-            ? "bg-green-500/20 border-green-500 text-white"
-            : "bg-white/5 border-white/10 text-gray-300 hover:border-green-500/50"
-        }`}
-      >
-        <div className="text-xl mb-1">🟢</div>
-        <div className="font-semibold text-sm">Easy</div>
-        <div className="text-xs text-gray-400 mt-1">Basic concepts</div>
-      </button>
-      <button
-        onClick={() => handleChange("difficulty", "medium")}
-        className={`p-4 rounded-xl border transition-all text-center ${
-          formData.difficulty === "medium"
-            ? "bg-yellow-500/20 border-yellow-500 text-white"
-            : "bg-white/5 border-white/10 text-gray-300 hover:border-yellow-500/50"
-        }`}
-      >
-        <div className="text-xl mb-1">🟡</div>
-        <div className="font-semibold text-sm">Medium</div>
-        <div className="text-xs text-gray-400 mt-1">Moderate level</div>
-      </button>
-      <button
-        onClick={() => handleChange("difficulty", "hard")}
-        className={`p-4 rounded-xl border transition-all text-center ${
-          formData.difficulty === "hard"
-            ? "bg-red-500/20 border-red-500 text-white"
-            : "bg-white/5 border-white/10 text-gray-300 hover:border-red-500/50"
-        }`}
-      >
-        <div className="text-xl mb-1">🔴</div>
-        <div className="font-semibold text-sm">Hard</div>
-        <div className="text-xs text-gray-400 mt-1">Advanced level</div>
-      </button>
-    </div>
-  </div>
-)}
+                {/* Topic suggestions */}
+                <div>
+                  <label className="text-gray-400 text-sm mb-2 block">Topic or Subject</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Quantum Physics, World War 2, Python..."
+                    value={customData.topic}
+                    onChange={e => setCustomData({...customData, topic: e.target.value})}
+                    className="w-full bg-white/5 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-pink-500 transition-colors"
+                  />
+                </div>
 
-{/* Submit */}
-            {formData.subject && formData.mode && formData.difficulty &&
-             (isLoggedIn || (formData.name && formData.college)) && (
-              <button
-                onClick={handleSubmit}
-                className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-4 rounded-xl font-bold text-lg hover:opacity-90 transition-all mt-4 shadow-lg shadow-purple-500/30"
-              >
-                Generate My Quiz 🚀
-              </button>
-            )}
+                {/* Quick suggestions */}
+                <div>
+                  <div className="text-gray-400 text-xs mb-2">Quick suggestions:</div>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      "Machine Learning", "Indian History", 
+                      "JavaScript", "Quantum Physics",
+                      "DNA & Genetics", "Climate Change",
+                      "Blockchain", "French Revolution"
+                    ].map(topic => (
+                      <button
+                        key={topic}
+                        onClick={() => setCustomData({...customData, topic})}
+                        className={`text-xs px-3 py-1.5 rounded-full border transition-all ${
+                          customData.topic === topic
+                            ? "bg-pink-500/20 border-pink-500 text-pink-300"
+                            : "bg-white/5 border-white/10 text-gray-400 hover:border-pink-500/50 hover:text-white"
+                        }`}
+                      >
+                        {topic}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
-          </div>
+                {customData.topic && (
+                  <ModeSelector
+                    value={customData.mode}
+                    onChange={(field, value) => setCustomData({...customData, [field]: value})}
+                  />
+                )}
+
+                {customData.mode && (
+                  <DifficultySelector
+                    value={customData.difficulty}
+                    onChange={(field, value) => setCustomData({...customData, [field]: value})}
+                    mode={customData.mode}
+                  />
+                )}
+
+                {customData.topic && customData.mode && customData.difficulty && (
+                  <button
+                    onClick={handleCustomSubmit}
+                    className="w-full bg-gradient-to-r from-pink-600 to-rose-600 text-white py-4 rounded-xl font-bold text-lg hover:opacity-90 transition-all mt-4 shadow-lg shadow-pink-500/30"
+                  >
+                    Generate My Quiz 🚀
+                  </button>
+                )}
+
+              </div>
+            </>
+          )}
+
         </div>
       </div>
     </div>
